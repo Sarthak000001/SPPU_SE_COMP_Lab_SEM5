@@ -1,12 +1,11 @@
 #include <bits/stdc++.h>
-#include <unistd.h>
+#include <unistd.h>  
 using namespace std;
 
 class Node
 {
 public:
     int id;
-
     Node()
     {
         id = 0;

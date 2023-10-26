@@ -162,6 +162,7 @@ public:
                 {
                     ans.push_back(id);
                 }
+                
                 currTime += bt;
                 completed++;
                 while (true)
