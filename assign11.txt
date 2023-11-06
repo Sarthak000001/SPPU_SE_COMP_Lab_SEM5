@@ -1,0 +1,155 @@
+db.product.insertMany([
+{ item:'paste',  amount:40,  customer:'Mike'}, 
+{ item:'Guitar', amount:200, customer:'Tom'},
+{ item:'milk',   amount:60,  customer:'Mike'},
+{ item:'pizza',  amount:150, customer:'Kiran'},
+{ item:'paste',  amount:40,  customer:'Kiran'},
+{ item:'pizza',  amount:150, customer:'Devika'},
+{ item:'paste',  amount:40,  customer:'Mike'},
+{ item:'paste',  amount:40,  customer:'Niraj'}, 
+{ item:'Guitar', amount:200, customer:'Reena'},
+{ item:'milk',   amount:60,  customer:'Mike'},
+{ item:'pizza',  amount:150, customer:'Devika'},
+{ item:'paste',  amount:40,  customer:'Devika'},
+{ item:'pizza',  amount:150, customer:'Kiran'},
+{ item:'paste',  amount:40,  customer:'Reena'} ])
+
+// To find total amount of money spend by each customer
+db.product.aggregate([ { $group: { _id: "$customer", total: { $sum: "$amount" } } }] )
+
+//To find Total number of products Purchased by customer
+db.product.aggregate([ { $group: { _id: "$customer", total: { $sum: 1 } } }] )
+
+//To find the avg. purchasing
+db.product.aggregate([ { $group: { _id: "$customer", total: { $avg: "$amount" } } }] )
+
+db.product.aggregate([ { $group: { _id: "$item", total: { $sum: "$amount" } } }] )
+
+db.product.updateMany(
+ {},                                                                                                                                                                                                  
+ {$set:{ feedback:["Nice","Excellent"],address:{city:"Nashik",state:"MH"}}},
+ {multi:true}
+ )  
+
+/* Aggregation Pipeline:
+$match: We'll filter documents where the "amount" is greater than or equal to 100.
+$group: We'll group the documents by the "item" field and calculate the total "amount" for each item.
+$project: We'll project the grouped results to include the "item" and "totalAmount" fields.
+$sort: We'll sort the results by "totalAmount" in descending order.
+$limit: We'll limit the results to the top 3 items based on the total amount. */
+db.product.aggregate([
+ {$match:{amount:{$gte:100}}},
+ {$group: {_id:"$item", totalAmount: {$sum:"$amount"}}},
+ {$project: {_id:0, item:"$_id", totalAmount:1}},
+ {$sort: {totalAmount:-1}},                                                                                                                                                                           
+ {$limit:3}
+ ])  
+
+
+Queries Related to the Pipeline:
+countDocuments: To count the number of documents in the "product" collection with an 
+"amount" greater than or equal to 100
+db.product.countDocuments({amount:{$gte:100}})
+
+Distinct: To find the distinct values of the "customer" field in the collection:
+db.product.distinct("customer")
+
+Assignment 11 : Map Reduce 
+// To find the customer who has spent the maximum amount
+db.product.mapReduce(
+    function () {
+        emit(this.customer, this.amount);
+    },
+    function (key, values) {
+        return Array.sum(values);
+    },
+    {
+        query: { amount: { $gte: 100 } },
+        out: "total_customer"
+    }
+)
+
+
+db.product.insertMany([
+    {
+        item: 'pen',
+        amount: 20,
+        customer: 'Mike',
+        address: { city: 'Nashik', state: 'MH' },
+        feedback: ['Good', 'Nice']
+    },
+    {
+        item: 'laptop',
+        amount: 800,
+        customer: 'Tom',
+        address: { city: 'Nashik', state: 'MH' },
+        feedback: ['Excellent', 'Awesome']
+    },
+    {
+        item: 'bread',
+        amount: 30,
+        customer: 'Kiran',
+        address: { city: 'Nashik', state: 'MH' },
+        feedback: ['Good', 'Nice']
+    },
+    {
+        item: 'toothbrush',
+        amount: 10,
+        customer: 'Devika',
+        address: { city: 'Nashik', state: 'MH' },
+        feedback: ['Okay', 'Satisfactory']
+    }
+]);
+
+db.product.mapReduce(
+    function () {
+        emit(this.customer, this.amount);
+    },
+    function (key, values) {
+        return Array.sum(values);
+    },
+    {
+        out: "total_amount_by_customer"
+    }
+);
+
+db.product.mapReduce(
+    function () {
+        emit(this.customer, this.amount);
+    },
+    function (key, values) {
+        return Array.sum(values);
+    },
+    {
+        query: { amount: { $gte: 100 } },
+        out: "total_amount_by_customer_with_criteria"
+    }
+);
+
+Operations associated with arrays field :-)
+1. $all: To find documents where the "feedback" array contains all specified values
+db.product.aggregate([ { $match: { feedback: { $all: ['Good', 'Nice'] } } }] )
+
+2. $slice: To limit the number of elements in the "feedback" array for each document
+ // Limit to the first 2 elements
+db.product.aggregate([ { $project: { _id:0,item: 1, customer: 1, feedback: { $slice: ['$feedback', 2] } } }] )
+
+3. $size: To find documents where the "feedback" array has a specific size.
+db.product.aggregate([
+  {
+    $match: {
+      feedback: {
+        $size: 2 // Filter documents with a "feedback" array of size 3
+      }
+    }
+  }
+])
+
+4. $unwind: To unwind the "feedback" array and create a separate document for each array element
+db.product.aggregate([
+  {
+    $unwind: '$feedback'
+  }
+])
+
+
