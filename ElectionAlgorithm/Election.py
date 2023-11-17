@@ -69,19 +69,21 @@ class BullyElection:
         print(f"p{max_process+1} informs everyone that it is new coordinator")
         
 def main():
-    print("1.Ring Algorithm \n2.Bully Algorithm")
-    choice = int(input("Enter your choice : "))
-    if choice == 1:
-        n = int(input("Enter total no. of process : "))
-        algo = RingElection(n)
-        algo.down(n)
-        algo.Election(3)
-    elif choice == 2:
-        n = int(input("Enter total no. of process :"))
-        algo = BullyElection(n)
-        algo.down(n)
-        algo.Election(1)
-    else:
-        print("Invalid Input")
+    while(1):
+        print("1.Ring Algorithm \n2.Bully Algorithm")
+        choice = int(input("Enter your choice : "))
+        if choice == 1:
+            n = int(input("Enter total no. of process : "))
+            algo = RingElection(n)
+            algo.down(n)
+            algo.Election(3)
+        elif choice == 2:
+            n = int(input("Enter total no. of process :"))
+            algo = BullyElection(n)
+            algo.down(n)
+            algo.Election(1)
+        else:
+            print("Invalid Input")
 
 main()
+

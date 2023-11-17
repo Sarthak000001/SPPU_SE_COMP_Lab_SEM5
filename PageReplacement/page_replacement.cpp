@@ -5,13 +5,7 @@
 */
 #include <bits/stdc++.h>
 #define endl '\n'
-#define ll long long
-#define जय_श्री_राम()                  \
-    ios_base::sync_with_stdio(false); \
-    cin.tie(NULL);                    \
-    cout.tie(NULL);
 using namespace std;
-const int MOD = 1e9 + 7;
 
 void FIFO(int pg[], int pn, int fn)
 {
@@ -158,11 +152,11 @@ int predict(int pg[], vector<int> &fr, int pn, int index)
                 }
                 break;
             }
-        if (j == pn-1)
-        {
-            // if page is not present
-            return i;
-        }
+            if (j == pn-1)
+            {
+                // if page is not present
+                return i;
+            }
         }
     }
     return (res == -1) ? 0 : res;
@@ -175,7 +169,7 @@ void Optimal(int pg[], int pn, int fn)
     for (int i = 0; i < pn; i++)
     {
         cout << pg[i] << " => ";
-        bool flag = false;
+        bool flag = false; // T->present/hit
         if (search(pg[i], fr))
         {
             flag = true;
