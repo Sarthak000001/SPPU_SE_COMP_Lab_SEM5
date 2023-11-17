@@ -1,5 +1,7 @@
+# ----> Sarthak Nirgude <----
+#         ◉_◉
+# ----|-----------------|----
 from xmlrpc.server import SimpleXMLRPCServer
-
 
 def factorial(n):
    fact = 1
@@ -37,7 +39,6 @@ server.register_function(factorial, 'factorial_rpc')
 server.register_function(getSquare, 'square_rpc')
 server.register_function(greet,"greet_rpc")
 server.register_function(is_prime,"is_prime_rpc")
-
 
 try:
    print("Listening on the port ", port)

@@ -1,3 +1,4 @@
+
 #include<bits/stdc++.h>
 using namespace std;
 
@@ -10,13 +11,11 @@ class Process{
     int turnAroundT;
     int waitingT;
     int remainingT;
-    int priority;
 
     Process(char pN, int at, int bt){
         this->pN = pN;
         this->arrivalT = at;
         this->burstT = bt;
-        this->priority = -1;
         this->completionT = -1;
         this->turnAroundT = -1;
         this->waitingT = -1;
@@ -40,9 +39,9 @@ class RRScheduling{
             return a.arrivalT < b.arrivalT;
         });
 
-        int currentT = 0;
         queue<Process> q;
         vector<Process> temp;
+        int currentT = 0;
         
         while(!q.empty() || !Processes.empty()){
 
@@ -92,13 +91,13 @@ class RRScheduling{
         }
     }
 
-    void process(){
+    void execute(){
         calCompletionTime();
         calTurnAroundTime();
         calWaitingTime();
     }
 
-    void inputProcesses(int n){
+    void input(int n){
         for(int i=0; i<n; i++){
             char pn;
             int at, bt;
@@ -114,26 +113,20 @@ class RRScheduling{
         }
     }
 
-    void displayProcesses(){
+    void display(){
+        cout << "No." << "\t" << "AT" << "\t" << "BT" << "\t" << "Prirority" << "\t" << "CT" << "\t" << "TAT" << "\t" << "WT" << endl;
         for(auto i: Processes){
             cout<<i.pN<<"\t"<<i.arrivalT<<"\t"<<i.burstT<<"\t"<<i.completionT<<"\t"<<i.turnAroundT<<"\t"<<i.waitingT<<endl;
         }
     }
 
-    void displayGantt(){
-        cout<<"0-"<<Processes[0].completionT<<":"<<Processes[0].pN<<endl;
-        for(int i=1; i<Processes.size(); i++){
-            cout<<Processes[i-1].completionT<<"-"<<Processes[i].completionT<<":"<<Processes[i].pN<<endl;
-        }
-    }
 
 };
 
 int main(){
-    RRScheduling rr(2);
-    rr.inputProcesses(4);
-    rr.process();
-    rr.displayProcesses();
-    rr.displayGantt();
+    RRScheduling rr(3);
+    rr.input(5);
+    rr.execute();
+    rr.display();
     return 0;
 }

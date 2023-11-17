@@ -1,296 +1,253 @@
+/*
+----> Sarthak Nirgude <----
+        ◉_◉
+----|-----------------|----
+*/
 #include <bits/stdc++.h>
+#define endl '\n'
 using namespace std;
 
-bool comp(vector<int> a, vector<int> b)
-{
-    if (a[1] == b[1])
-    {
-        if (a[2] == b[2])
-            return a[0] < b[0];
-        else
-            return a[2] < b[2];
+class Process{
+    public:
+    char pn;
+    int at;
+    int bt;
+    int ct;
+    int wt;
+    int tat;
+    int rem;
+    int priority;
+    Process(char pn,int at,int bt,int priority = -1){
+        this->pn = pn;
+        this->at = at;
+        this->bt = bt;
+        this->ct = this->wt = this->tat = -1;
+        this->rem = bt; //sjf
+        this->priority = priority;
     }
-    return a[1] > b[1];
-}
-bool prio(vector<int> a, vector<int> b)
-{
-    if (a[1] == b[1])
+    bool operator<(const Process &other) const
     {
-        if (a[3] == b[3])
-        {
-            return a[2] < b[2];
+        if(priority == -1) return rem > other.rem; //sjf
+        else return priority > other.priority; //Priority Scheduling
+    }
+};
+class Scheduling{
+  vector<Process>arr;
+  int tq; //time quantum
+  public:
+    void input(vector<Process>temp,int tq=-1){
+        //copy the i/p vector
+        arr = temp;
+        //sort process on basis of AT
+        sort(arr.begin(),arr.end(),[](Process &a,Process &b){
+            return a.at < b.at;
+        });
+        //for RR taking time quantum
+        this->tq = (tq==-1) ? INT_MAX : tq;
+    }
+    //For FCFS
+    void completionT_fcfs(){
+        //completion time for fcfs (non-preemptive)
+        arr[0].ct = arr[0].at + arr[0].bt;
+        for(int i=1;i < arr.size();i++){
+            arr[i].ct = max(arr[i].at,arr[i-1].ct) + arr[i].bt;
         }
-        return a[3] < b[3];
     }
-    return a[1] < b[1];
-}
-class Scheduling
-{
-public:
-    int n;
-    vector<vector<int>> vec;
+    //For SJF
+    void completionT_sjf(){
+        vector<Process>temp;//to store temporarily completed processes
+        priority_queue<Process>q; //processes that are ready to execute
+        int currentTime = 0; //keep track of current time 
+        while(!q.empty() || !arr.empty()){
 
-    void input()
-    {
-        cout << "\nEnter Number of Processes ::";
-        cin >> this->n;
-        vector<vector<int>> v(n);
-        cout << "\nEnter ID AT BT PR of each Process :: " << endl;
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < 4; j++)
-            {
-                int x;
-                cin >> x;
-                v[i].push_back(x);
+            while(!arr.empty() && arr.front().at <= currentTime){
+                q.push(arr.front());
+                arr.erase(arr.begin());
+            }
+            if(!q.empty()){
+                //execute process with shortest burst time
+                Process curr = q.top();
+                q.pop();
+                currentTime++;
+                curr.rem--;
+                // process doesn't complete,pushed back into the queue
+                if(curr.rem > 0){
+                    q.push(curr);
+                }else{
+                    curr.ct = currentTime;
+                    temp.push_back(curr);
+                }
+            }else{
+                currentTime++;
             }
         }
-        this->vec = v;
+        arr = temp;
     }
-    void fcfs()
-    {
-        vector<int> ct(n);
-        vector<int> tat(n);
-        vector<int> wt(n);
-        int x = 0;
-        sort(vec.begin(), vec.end(), comp);
-
-        // Calculating ct,tat,wt
-        float avg_wt = 0.0;
-        float avg_tat = 0.0;
-        for (int i = 0; i < n; i++)
-        {
-            x += vec[i][2];
-            ct[i] = x;
-            tat[i] = ct[i] - vec[i][1];
-            wt[i] = tat[i] - vec[i][2];
-            avg_wt += wt[i];
-            avg_tat += tat[i];
-        }
-        cout << avg_tat / n << " " << avg_wt / n << endl;
-    }
-    void sjf(vector<vector<int>> v)
-    {
-        // cout << "in sjf";
-        vector<int> ans;
-        int i = 0;
+    //For Priority 
+    void completionT_priority(){
+        vector<Process>temp;
+        priority_queue<Process>q;
         int currentTime = 0;
-        sort(v.begin(), v.end(), comp);
-
-        priority_queue<vector<int>, vector<vector<int>>, greater<vector<int>>> pq;
-        // //          BT      AT        ID
-        pq.push({v[0][2], v[0][1], v[0][0]});
-        i++;
-
-        while (!pq.empty())
-        {
-            // cout << "in while";
-            int id = pq.top()[2];
-            int burst_time = pq.top()[0] - 1;
-            int at = pq.top()[1];
-            currentTime += 1;
-            pq.pop();
-            ans.push_back(id);
-            if (burst_time != 0)
-            {
-                pq.push({burst_time, at, id});
-            }
-            while (true)
-            {
-                if (i < n and v[i][1] <= currentTime)
-                {
-
-                    pq.push({v[i][2], v[i][1], v[i][0]});
-                    i++;
-                }
-                else
-                    break;
-            }
-        }
-        sort(v.begin(), v.end());
-        // for (auto x : v)
-        // {
-        //     cout << x[0] << " " << x[1] << " " << x[2] << " " << x[3] << endl;
-        // }
-        vector<int> ct(n);
-        for (int i = 0; i < n; i++)
-        {
-
-            ct[i] = ans.size() - (find(ans.rbegin(), ans.rend(), i + 1) - ans.rbegin());
-        }
-        // calc tat wt
-        vector<int> tat(n);
-        vector<int> wt(n);
-        float avgtat = 0.0;
-        float avgwt = 0.0;
-        for (int i = 0; i < n; i++)
-        {
-            tat[i] = ct[i] - v[i][1];
-            wt[i] = tat[i] - v[i][2];
-            avgtat += tat[i];
-            avgwt += wt[i];
-        }
-        cout << avgtat / n << "  " << avgwt / n << endl;
-        // for (auto x : ct)
-        // {
-        //     cout << x << " ";
-        // }
-    }
-
-    void RR(vector<vector<int>> v)
-    {
-        int qt;
-        cout << "\nEnter Quantum Time for Round Robin Method ::";
-        cin >> qt;
-        int currTime = 0;
-        vector<int> ans;
-        int completed = 0;
-        queue<vector<int>> q;
         int i = 1;
-        sort(v.begin(), v.end(), comp);
-        //  BT      AT        ID
-        q.push({v[0][2], v[0][1], v[0][0]});
-        do
-        {
-            int id = q.front()[2];
-            int bt = q.front()[0];
-            int at = q.front()[1];
+        q.push(arr[0]);
+        while(!q.empty()){
+            Process curr = q.top();
+            q.pop();
 
-            if (bt <= qt)
-            {
-                for (int i = 0; i < bt; i++)
-                {
-                    ans.push_back(id);
-                }
-                
-                currTime += bt;
-                completed++;
-                while (true)
-                {
-                    if (i < n and v[i][1] <= currTime)
-                    {
+            currentTime += curr.bt;
+            curr.ct = currentTime;
+            temp.push_back(curr);
 
-                        q.push({v[i][2], v[i][1], v[i][0]});
-                        i++;
-                    }
-                    else
-                        break;
-                }
-                q.pop();
+            while(arr[i].at <= currentTime){
+                q.push(arr[i]);
+                i++;
             }
-            else
-            {
-                for (int i = 0; i < qt; i++)
-                {
-                    ans.push_back(id);
-                }
-                currTime += qt;
-                while (true)
-                {
-                    if (i < n and v[i][1] <= currTime)
-                    {
-
-                        q.push({v[i][2], v[i][1], v[i][0]});
-                        i++;
-                    }
-                    else
-                        break;
-                }
-                q.push({bt - qt, at, id});
-                q.pop();
-            }
-        } while (!q.empty());
-        // for (auto x : ans)
-        // {
-        //     cout << x << " ";
-        // }
-        sort(v.begin(), v.end());
-        vector<int> ct(n);
-        for (int i = 0; i < n; i++)
-        {
-            ct[i] = ans.size() - (find(ans.rbegin(), ans.rend(), i + 1) - ans.rbegin());
         }
-        // calc tat wt
-        vector<int> tat(n);
-        vector<int> wt(n);
-        float avgtat = 0.0;
-        float avgwt = 0.0;
-        for (int i = 0; i < n; i++)
-        {
-            tat[i] = ct[i] - v[i][1];
-            wt[i] = tat[i] - v[i][2];
-            avgtat += tat[i];
-            avgwt += wt[i];
-        }
-        // for (auto x : wt)
-        // {
-        //     cout << x << " ";
-        // }
-        cout << avgtat / n << "  " << avgwt / n << endl;
+        arr = temp;
     }
-    void priority(vector<vector<int>> v)
-    {
-        sort(v.begin(), v.end(), prio);
-        for (auto x : v)
-        {
-            cout << x[0] << " " << x[1] << " " << x[2] << " " << x[3] << endl;
-        }
-        vector<int> ct(n + 1);
-        vector<int> tat(n + 1);
-        vector<int> wt(n + 1);
+    //For RR
+    void completionT_RR(){
+        queue<Process>q;
+        vector<Process>temp;
+        int currentTime = 0;
+        while(!q.empty() || !arr.empty()){
+            while(!arr.empty() && arr.front().at <= currentTime){
+                q.push(arr.front());
+                arr.erase(arr.begin());
+            }
+            if(!q.empty()){
+                Process curr = q.front();
+                q.pop();
 
-        priority_queue<vector<int>> pq;
-        pq.push({v[0][3], v[0][0], v[0][2]});
-        int i = 1;
-        int current_time = 0;
-        // vector<int> cmp(n + 1);
-        while (!pq.empty() and i <= n)
-        {
-            int bt = pq.top()[2];
-            int id = pq.top()[1];
-            // cout<<id;
-            current_time += bt;
-            ct[id] = current_time;
-            pq.pop();
-            while (true)
-            {
-                if (i < n and v[i][1] <= current_time)
-                {
-                    pq.push({v[i][3], v[i][0], v[i][2]});
-                    i++;
+                int executionT = min(tq, curr.rem);
+                currentTime += executionT;
+                curr.rem -= executionT;
+                if(curr.rem > 0){
+                    while(!arr.empty()&&arr.front().at<=currentTime){
+                        q.push(arr.front());
+                        arr.erase(arr.begin());
+                    }
+                    q.push(curr);//insert back the process
+                }else{
+                    curr.ct = currentTime;
+                    temp.push_back(curr);
                 }
-                else
-                {
-                    break;
-                }
+            }else{
+                currentTime++;
             }
         }
-        for (auto x : ct)
-        {
-            cout << x << " ";
+        arr = temp;
+    }
+    void turnAroundT(){
+        for(int i=0;i < arr.size();i++){
+            arr[i].tat = arr[i].ct - arr[i].at;
         }
-        float avgtat = 0.0;
-        float avgwt = 0.0;
-        for (int i = 0; i < n; i++)
-        {
-            tat[i] = ct[i] - v[i][1];
-            wt[i] = tat[i] - v[i][2];
-            avgtat += tat[i];
-            avgwt += wt[i];
+    }
+    void waitingT(){
+        for(int i = 0;i < arr.size();i++){
+            arr[i].wt = arr[i].tat - arr[i].bt;
         }
-        cout << avgtat / n << "  " << avgwt / n << endl;
+    }
+    void display(){
+        if(arr[0].priority == -1){
+            cout << "ProcessNO\tArrival time\tBurst time\tCompletion time\tturnaround time\twaiting time" << endl;
+            for (auto &it : arr)
+            {
+                cout << it.pn << "\t\t"
+                    << it.at << "\t\t"
+                    << it.bt << "\t\t"
+                    << it.ct << "\t\t"
+                    << it.tat << "\t\t"
+                    << it.wt << "\t\t"
+                    << endl;
+            }
+        }
+        else{
+            cout << "ProcessNO\tPriority\tArrival time\tBurst time\tCompletion time\tturnaround time\twaiting time" << endl;
+            for (auto &it : arr)
+            {
+                cout << it.pn << "\t\t"
+                    << it.priority << "\t\t"
+                    << it.at << "\t\t"
+                    << it.bt << "\t\t"
+                    << it.ct << "\t\t"
+                    << it.tat << "\t\t"
+                    << it.wt << "\t\t"
+                    << endl;
+            }
+        }
+
     }
 };
 
 int main()
-{
-    cout << "hey\n";
-    Scheduling s;
-    s.input();
-    s.fcfs();
-    // s.sjf(s.vec);
-    // s.RR(s.vec);
-    // s.priority(s.vec);
-
-    return 0;
+{  
+    vector<Process>arr;
+    int n;
+    //taking input
+    cout << "Enter number of Process : ";
+    cin >> n;
+    for(int i=0;i < n;i++){
+        char pn;int at,bt;
+        cout << "Process No : ";
+        cin >> pn;
+        cout << "Enter AT : ";
+        cin >> at;
+        cout << "Enter BT : ";
+        cin >> bt;
+        Process p(pn,at,bt);
+        arr.push_back(p);
+        cout <<endl;
+    }
+    while(1){
+        int choice;
+        cout << "1.FCFS\n2.SJF\n3.Priority\n4.RR\n5.Exit" << endl;
+        cout << "Enter your choice :";
+        cin >> choice;
+        if(choice == 1){
+            // FCFS Non-preemptive 
+            Scheduling fcfs;
+            fcfs.input(arr);
+            fcfs.completionT_fcfs();
+            fcfs.turnAroundT();
+            fcfs.waitingT();
+            fcfs.display();
+        }
+        else if(choice == 2){
+            // SJF preemptive 
+            Scheduling sjf;
+            sjf.input(arr);
+            sjf.completionT_sjf();
+            sjf.turnAroundT();
+            sjf.waitingT();
+            sjf.display();
+        }
+        else if(choice == 3){
+            // Priority Non-preemptive
+            for(int i=0;i < n;i++){
+                int k;
+                cout << "Enter priority for p"<<arr[i].pn<<" :";
+                cin >> k;
+                arr[i].priority = k;
+            }
+            Scheduling p;
+            p.input(arr);
+            p.completionT_priority();
+            p.turnAroundT();
+            p.waitingT();
+            p.display();
+        }
+        else if(choice == 4){
+            Scheduling rr;
+            rr.input(arr,3);
+            rr.completionT_RR();
+            rr.turnAroundT();
+            rr.waitingT();
+            rr.display();
+        }
+        else{
+            exit(0);
+        }
+    }
+  return 0;
 }
