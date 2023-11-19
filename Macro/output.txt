@@ -1,0 +1,7 @@
+READ	O	
+READ	T	
+ONE	O,9	
+TWO	T,7	
+STOP	
+O	DS	1	
+T	DS	1	

@@ -3,403 +3,403 @@
         ◉_◉
 ----|-----------------|----
 */
-#include <bits/stdc++.h>
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <vector>
+#include <map>
+#include <regex>
 using namespace std;
 
-class mnemonic
+class SymTabEntry
 {
-    map<string, pair<string, string>> Opcode;
+    public:
+    int index;
+    string symbol;
+    int address;
 
-public:
-    mnemonic()
+    public:
+    SymTabEntry(int index, string symbol, int address)
     {
-        Opcode["STOP"] = {"IS", "00"};
-        Opcode["ADD"] = {"IS", "01"};
-        Opcode["SUB"] = {"IS", "02"};
-        Opcode["MULT"] = {"IS", "03"};
-        Opcode["MOVER"] = {"IS", "04"};
-        Opcode["MOVEM"] = {"IS", "05"};
-        Opcode["COMP"] = {"IS", "06"};
-        Opcode["BC"] = {"IS", "07"};
-        Opcode["DIV"] = {"IS", "08"};
-        Opcode["READ"] = {"IS", "09"};
-        Opcode["PRINT"] = {"IS", "10"};
-        Opcode["START"] = {"AD", "01"};
-        Opcode["END"] = {"AD", "02"};
-        Opcode["ORIGIN"] = {"AD", "03"};
-        Opcode["EQU"] = {"AD", "04"};
-        Opcode["LTORG"] = {"AD", "05"};
-        Opcode["DC"] = {"DL", "01"};
-        Opcode["DS"] = {"DL", "02"};
+        this->index = index;
+        this->symbol = symbol;
+        this->address = address;
     }
-    friend class CodeGen;
 };
 
-class register_
+class LitTabEntry
 {
-    map<string, pair<string, string>> Register;
+    public:
+    int index;
+    string literal;
+    int address;
 
-public:
-    register_()
+    public:
+    LitTabEntry(int index, string literal, int address)
     {
-        Register["AREG"] = {"1", ""};
-        Register["BREG"] = {"2", ""};
-        Register["CREG"] = {"3", ""};
-        Register["DREG"] = {"4", ""};
+        this->index = index;
+        this->literal = literal;
+        this->address = address;
     }
-    friend class CodeGen;
 };
 
-class condition
+class PoolTabEntry
 {
-    map<string, pair<string, string>> Condition;
+    public:
+    int index;
+    int address;
 
-    condition()
+    public:
+    PoolTabEntry(int index, int address)
     {
-        Condition["LT"] = {"1", ""};
-        Condition["LE"] = {"2", ""};
-        Condition["EQ"] = {"3", ""};
-        Condition["GT"] = {"4", ""};
-        Condition["GE"] = {"5", ""};
-        Condition["ANY"] = {"6", ""};
+        this->index = index;
+        this->address = address;
     }
-    friend class CodeGen;
 };
 
-class CodeGen
+class Instruction
 {
-public:
-    void read();
-};
+    public:
+    string label;
+    string opcode;
+    string operand_1;
+    string operand_2;
 
-void CodeGen::read()
-{
-    // For storing the intermidiate values
-    map<string, pair<int, string>> symtab;
-    vector<pair<string, int>> littab;
-    vector<string> pooltab;
-    int lc, start, length;
-
-    // opening i/p an o/p files
-    ifstream fin;
-
-    cout<<"\nEnter the file name"<<endl;
-    string filename;
-    cin>>filename;
-
-    fin.open(filename);
-    ofstream fout;
-    fout.open("intermidiate.txt");
-
-    int literal_index = 0,symindex =0;
-    lc = -1;
-    string line, word;
-    mnemonic Op;
-    register_ Reg;
-    condition Con;
-
-    fout << "LC"
-         << "   "
-         << "Intermidate code o/p";
-    fout << endl;
-
-    while (getline(fin, line))
+    Instruction()
     {
-        //cout<<"lc "<<lc<<endl;
-        stringstream st(line);
+        this->label = "";
+        this->opcode = "";
+        this->operand_1 = "";
+        this->operand_2 = "";
+    }
+};
 
-        // read label
-        st >> word;
-        string label = "";
 
-        // if word is not opcode then it must be label
-        if (Op.Opcode.count(word) == 0)
-        {
-            // it it is not present in symbol table then add otherwise it must be op2 and hence assign it a lc
-            if (symtab.count(word) == 0)
-            {
-                symtab[word] = {lc,to_string(symindex)};
-                symindex++;
-                //cout<<"word "<<word<<" "<<symtab[word].first<<endl;
-            }
-            else
-            {
-                symtab[word].first = lc;
-            }
-            // read opcode
-            label = word;
-            st >> word;
+class pass1{
+    map<string,string>IS;
+    map<string,string>AD;
+    map<string,string>DL;
+    map<string,string>R;
+
+    vector<SymTabEntry>symTab;
+    vector<LitTabEntry>litTab;
+    vector<PoolTabEntry>poolTab;
+    
+
+    public:
+
+    pass1(){
+        IS["STOP"] = "00";
+        IS["ADD"] = "01";
+        IS["SUB"] = "02";
+        IS["MULT"] = "03" ;
+        IS["MOVER"] = "04";
+        IS["MOVEM"] = "05";
+        IS["COMP"] = "06";
+        IS["BC"] = "07";
+        IS["DIV"] = "08" ;
+        IS["READ"] = "09" ;
+        IS["PRINT"] = "10";
+
+        AD["START"] = "01";
+        AD["END"] = "02";
+        AD["ORIGIN"] = "03";
+        AD["EQU"] = "04";
+        AD["LTORG"] = "05";
+
+        DL["DC"] = "01";
+        DL["DS"] = "02" ;
+
+        R["AREG"] = "01";
+        R["BREG"] = "02";
+        R["CREG"] = "03";
+        R["DREG"] = "04";
+        R["ANY"] = "06";
+
+        poolTab.push_back(PoolTabEntry(1,1));
+    }
+
+    vector<string> Lines(string filename){
+        fstream fin;
+        fin.open(filename);
+        vector<string>temp;
+        string line;
+        while(!(fin.eof())){
+            getline(fin, line);
+            temp.push_back(line);
         }
 
-        string operation = word;
-        if (operation == "START")
-        {
-            fout << "    ";
-            fout << "(" << Op.Opcode[word].first << ", " << Op.Opcode[word].second << ") ";
-            // taking const input
-            st >> word;
-            fout << "(C," << word << ")";
-            fout << endl;
-            lc = stoi(word);
+        return temp;
+    }
+    
+    bool checkLabel(string s){
+        if(AD[s]!="" || DL[s]!="" || IS[s]!=""){
+            return false;
+        }return true;
+    }
+
+    vector<Instruction> Instruct(vector<string> v){
+        vector<Instruction> temp;
+
+        for(int i=0;i<v.size();i++){
+            Instruction instr;
+            stringstream s(v[i]);
+            string word;
+            vector<string>words;
+            while(s>>word){
+                words.push_back(word);
+            }
+
+            int j = 0;
+
+            if(checkLabel(words[j])){
+                instr.label = words[j];
+                j++;
+            }
+
+            if(j<words.size()){
+                instr.opcode = words[j];
+                j++;
+            }
+
+            if(j<words.size()){
+                instr.operand_1 = words[j];
+                j++;
+            }
+
+            if(j<words.size()){
+                instr.operand_2 = words[j];
+                j++;
+            }
+            temp.push_back(instr);
         }
+        return temp;
+    }
 
-        else if (operation == "END")
-        {
-            fout << "    ";
-            fout << "(" << Op.Opcode[word].first << ", " << Op.Opcode[word].second << ") ";
-            fout << endl;
-            pooltab.push_back("#" + to_string(literal_index+1));
-            for (;literal_index < littab.size(); literal_index++)
-            {
-                fout << lc << " ";
-                fout << "(" << Op.Opcode["DC"].first << ", " << Op.Opcode["DC"].second << ") ";
-                littab[literal_index].second = lc;
-                string literal = littab[literal_index].first;
-                string sublit = literal.substr(2, literal.length() - 3);
-                fout << "(C," << sublit << ") ";
-                fout << endl;
-                lc++;
-            }
-            st>>word;
-            if(st.fail())
-                break;
-            operation=word;
-        }
+    void updateSymTab(string label, int lc){
 
-        // If word is equals LTROG
-        else if (operation == "LTORG")
-        {
-            //fout << lc << " ";
-            fout << "(" << Op.Opcode[word].first << ", " << Op.Opcode[word].second << ") ";
-            fout << endl;
-
-            // Push the literal pool entry
-            pooltab.push_back("#" + to_string(literal_index+1));
-
-            // Process literals in the literal table
-            for (int i = literal_index; i < littab.size(); i++)
-            {
-                fout << lc << " ";
-                fout << "(" << Op.Opcode["DC"].first << ", " << Op.Opcode["DC"].second << ") ";
-
-                // Update the literal's address in the literal table
-                littab[literal_index].second = lc;
-                // Extracting the substring
-                string literal = littab[literal_index].first;
-                size_t length = literal.length() - 3;
-                string sublit = literal.substr(2, length);
-                //cout<<"sublit "<<sublit<<endl;
-
-                // Write the literal's information
-                fout << "(C," << sublit << ") ";
-                fout << endl;
-                literal_index++;
-                lc++;
-            }
-        }
-
-        // It is EQU
-        else if (operation == "EQU")
-        {
-            fout << "    ";
-            fout << "No Intermediate code";
-            fout << endl;
-
-            // Read the next word from input
-            st >> word;
-            // Find the index of '+' or '-' sign in the word
-            int plusminusindex = 0;
-            //cout<<word<<endl;
-            for (int i = 0; i < word.length(); i++)
-            {
-                if (word[i] == '+' || word[i] == '-')
-                {
-                    plusminusindex = i;
-                    break;
-                }
-                //cout<<"hi"<<endl;
-            }
-            
-            // Initialize variables for the sign and parts of the word
-            char plusminus = '0';
-            string aftersign;
-            string beforesign;
-
-            // Extract parts of the word based on sign
-            if (plusminusindex != 0)
-            {
-                plusminus = word[plusminusindex];
-                beforesign = word.substr(0, plusminusindex);
-                aftersign = word.substr(plusminusindex + 1);
-            }
-            else
-            {
-                beforesign = word.substr(0, word.length());
-            }
-
-            // Calculate the value for the label in the symbol table
-            symtab[label].first = symtab[beforesign].first;
-
-
-            // cout<<"aftersign "<<aftersign<<endl;
-            // cout<<"beforesign "<<beforesign<<endl;
-            //cout<<"label "<<label<<endl;
-            //cout<<"plusminus "<<plusminus<<endl;
-
-            if (plusminus == '+')
-            {
-                symtab[label].first += stoi(aftersign);
-            }
-            else if(plusminus == '-')
-            {
-                symtab[label].first -= stoi(aftersign);
+        for(int i=0;i<symTab.size();i++){
+            if(symTab[i].symbol == label){
+                symTab[i].address = lc;
+                return;
             }
         }
 
-        // Origin
-        else if (operation == "ORIGIN")
-        {
-            fout << "    ";
-            fout << "(" << Op.Opcode[word].first << ", " << Op.Opcode[word].second << ") ";
-            st >> word;
+        symTab.push_back(SymTabEntry(symTab.size()+1, label, lc));
+        
+    }
 
-            int plusminusindex = 0;
-            for (int i = 0; i < word.length(); i++)
-            {
-                if (word[i] == '+' || word[i] == '-')
-                {
-                    plusminusindex = i;
-                    break;
-                }
-            }
-            char plusminus = '0';
-            string beforesign, aftersign;
-
-            if (plusminusindex != 0)
-            {
-                plusminus = word[plusminusindex];
-                aftersign = word.substr(plusminusindex + 1);
-                beforesign = word.substr(0, plusminusindex);
-            }
-            else
-            {
-                beforesign = word.substr(0, word.length());
-            }
-            lc = symtab[beforesign].first;
-            fout << "(S," << symtab[beforesign].second << ")";
-
-            if (plusminus == '+')
-            {
-                lc += stoi(aftersign);
-                fout << "+" << aftersign << "\n";
-            }
-            else if (plusminus == '-')
-            {
-                lc -= stoi(aftersign);
-                fout << "-" << aftersign << "\n";
+    void updatelitTab(string label){
+        int startin = poolTab.back().address-1;
+        for(int i=startin; i<litTab.size(); i++){
+            if(litTab[i].literal==label){
+                return;
             }
         }
-        // It is imperative statement
-        else
-        {
-            fout << lc << " ";
-            fout << "(" << Op.Opcode[word].first << ", " << Op.Opcode[word].second << ") ";
 
-            while (st >> word)
-            {
-                if (operation == "DC")
-                {
-                    fout << "(C," << word << ") ";
-                }
-                else if (operation == "DS")
-                {
-                    int c=stoi(word);
-                    if(c>1)
-                    {
-                        lc+=(c-1);
+        litTab.push_back(LitTabEntry(litTab.size()+1, label, -1));
+    }
+
+    int getSymIndex(string s){
+        for(int i=0;i<symTab.size();i++){
+            if(symTab[i].symbol == s){
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    int evaluate(string s){
+        int ind = find(s.begin(), s.end(), '+')-s.begin();
+        if(ind == s.size()){
+            ind = find(s.begin(), s.end(), '-')-s.begin();
+        }
+
+        if(ind != s.size()){
+            int right = stoi(s.substr(ind+1));
+            int left = symTab[getSymIndex(s.substr(0,ind))].address;
+
+            if(s[ind]=='+'){
+                return left+right;
+            }else{
+                return left-right;
+            }
+        }
+        else{
+            return symTab[getSymIndex(s)].address;
+        }
+    }
+
+    void processOperand(string s){
+        if(s==""){return;}
+
+        if(s[0]=='='){
+            updatelitTab(s);
+        }
+        else if(R[s] == ""){
+            if(getSymIndex(s)==-1){
+                updateSymTab(s,-1);
+            }
+        }
+    }
+
+    string addOperand(string IC, string operand){
+        if(operand == ""){
+            return IC;
+        }
+
+        if(R[operand] != ""){
+            IC += " (" + R[operand] +  ")";
+        }else{
+            if(operand[0] == '='){
+                int ind = -1;
+                for(int i=0;i<litTab.size();i++){
+                    if(litTab[i].literal == operand){
+                        ind = i;
                     }
-                    fout << "(C," << word << ") ";
                 }
-                // It is a literal
-                else if (word[0] == '=')
-                {
-                    littab.push_back({word, 0});
-                    fout << "(L," << littab.size() << ") ";
+                IC += "(L " + to_string(ind+1) +  ")";
+            }else{
+                int ind1 = find(operand.begin(), operand.end(), '+')-operand.begin();
+                if(ind1 == operand.size()){
+                    ind1 = find(operand.begin(), operand.end(), '-')-operand.begin();
                 }
-                // Present in Register
-                else if (Reg.Register.count(word) > 0)
-                {
-                    fout << "(" << Reg.Register[word].first << ") ";
-                }
-                else if (Con.Condition.count(word) > 0)
-                {
-                    fout << "(" << Con.Condition[word].first << ") ";
-                }
-                // It is a symbol
-                else
-                {
-                    // consider
-                    if (symtab.count(word) == 0)
-                    {
-                        symtab[word] = {lc,to_string(symindex)};
-                        fout << "(S," << symtab[word].second << ") ";
-                        symindex++;                       
-                    }
-                    else
-                    fout << "(S," << symtab[word].second << ") ";
+                if(ind1 != operand.size()){
+                    string right = operand.substr(ind1);
+                    string left = operand.substr(0,ind1);
+                    IC += "(S ," + to_string(getSymIndex(left)+1) + ")" + right ;
+                }else if(getSymIndex(operand) == -1){
+                    IC += "(C " + operand +  ")";
+                }else{
+                    int ind = getSymIndex(operand);
+                    IC += "(S " + to_string(ind+1) +  ")";
                 }
             }
+        }
+        return IC;
+    }
+    vector<string>process(Instruction instr, int &lc){
+        vector<string>temp;
+        if(instr.label != ""){
+            updateSymTab(instr.label,lc);
+        }
 
-            // Statement is over
-            lc++;
-            fout << endl;
+        if(AD[instr.opcode] !=""){
+
+            if(instr.opcode == "START"){
+                lc = stoi(instr.operand_1);
+            }
+            else if(instr.opcode == "ORIGIN"){
+                int val = evaluate(instr.operand_1);
+                lc = val;
+            }else if(instr.opcode == "LTORG" || instr.opcode == "END"){
+                int startind = poolTab.back().address-1;
+                
+                for(int i = startind;i<litTab.size();i++){
+                    litTab[i].address = lc;
+                    string l = litTab[i].literal;
+                    string ICLines = to_string(lc) + ".   " + "(DL, 01) (C, "+l.substr(2,l.size()-3)+ ")";
+                    temp.push_back(ICLines);
+                    lc++;
+                }
+                poolTab.push_back(PoolTabEntry(poolTab.size()+1, litTab.size()+1));
+            }else{
+                int val = evaluate(instr.operand_1);
+                symTab[getSymIndex(instr.label)].address = val;
+            }
+    
+        }
+        else{
+            processOperand(instr.operand_1);
+            processOperand(instr.operand_2);
+        }
+
+        string IC = "";
+        if(instr.opcode != "LTORG"){
+            if(AD[instr.opcode]!=""){
+                IC += "-    (AD , " + AD[instr.opcode] + ")";
+            }else if(IS[instr.opcode]!=""){
+                IC += to_string(lc) + ". (IS , " + IS[instr.opcode] + ")";
+            }else{
+                IC += to_string(lc) + ". (DL ," + DL[instr.opcode] +  ")";
+            }
+
+            IC = addOperand(IC, instr.operand_1);
+            IC = addOperand(IC, instr.operand_2);
+
+            temp.push_back(IC);
+        }
+
+        if(IS[instr.opcode] != "" || DL[instr.opcode] != "")
+        {
+            if(instr.opcode == "DS"){
+                int change = stoi(instr.operand_1);
+                lc = lc+change;
+            }
+            else lc++;
+        }
+        return temp;
+    }
+
+    void displayIC(vector<string>v){
+        for(int i=0;i<v.size() ; i++){
+            cout << v[i] << endl;
         }
     }
-
-    fin.close();
-    fout.close();
-
-    ofstream sout;
-    sout << "Index"
-         << " "
-         << "Symbol"
-         << "       "
-         << "Address" << endl;
-    sout.open("symbol_table.txt"); // writing to symbol table file
-    for (auto i : symtab)
+    void displayPoolTab()
     {
-        sout << i.second.second << " " << i.first << " " << i.second.first << endl;
+        cout<<"PoolTab:"<<endl;
+        int len = poolTab.size();
+        for(int i = 0 ; i < len ; i++)
+        {
+            cout<<poolTab[i].index<<"  "<<poolTab[i].address<<endl;
+        }
     }
-    sout.close();
-
-    ofstream lout;
-    lout << "Literal"
-         << " "
-         << "Address" << endl;
-    lout.open("literal_table.txt"); // writing to literal table file
-    for (auto i : littab)
+    
+    void displayLitTab()
     {
-        lout << i.first << " " << i.second;
-        lout << endl;
+        cout<<"Littab"<<endl;
+        int len = litTab.size();
+        for(int i = 0 ; i < len ; i++)
+        {
+            cout<<litTab[i].index<<"  "<<litTab[i].literal<<"   "<<litTab[i].address<<endl;
+        }
     }
-    lout.close();
-
-    ofstream pout;
-    pout << "Pool Index" << endl;
-    pout.open("pool_table.txt"); // writing to pool table file
-    for (auto i : pooltab)
+    void displaySymTab()
     {
-        pout << i;
-        pout << endl;
+        cout<<"Symtab : "<<endl;
+        int len = symTab.size();
+        for(int i = 0 ; i < len ; i++)
+        {
+            cout<<symTab[i].index<<"  "<<symTab[i].symbol<<"  "<<symTab[i].address<<endl;
+        }
     }
-    pout.close();
+    void genrateIC(string filename){
+        vector<string>line = Lines(filename);
+        vector<Instruction>I = Instruct(line);
+        vector<string>IC;
+        int len = line.size();
+        int lc = 0;
 
-    cout << "\nProgram Executed!!" << endl;
-}
+        for(int i=0;i<len;i++){
+            vector<string> L = process(I[i], lc);
+            for(int j=0;j<L.size();j++){
+                IC.push_back(L[j]);
+            }
+        }
 
-int main()
-{
-    CodeGen table;
-    table.read();
-    return 0;
+        displayIC(IC);
+        displaySymTab();
+        displayLitTab();
+        displayPoolTab();
+    }
+
+};
+
+
+int main(){
+    pass1 p;
+    vector<string>line = p.Lines("test_2.txt");
+    vector<Instruction>I = p.Instruct(line);
+    p.genrateIC("mock01.txt");
 }

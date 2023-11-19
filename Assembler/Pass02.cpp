@@ -6,143 +6,125 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-class CodeGen
+int main()
 {
-public:
-    void pass2();
-};
 
-void CodeGen::pass2()
-{
-    // Opening intermediate code file
-    ifstream fin("intermidiate.txt");
-    ifstream sin("symbol_table.txt");
-    ifstream lin("literal_table.txt");
+    vector<pair<string, string>> symtab;
+    vector<pair<string, string>> littab;
 
-    if (!fin.is_open())
+    ifstream sym;
+    sym.open("symTable.txt", ios::in);
+    string line, word1, word2;
+    while (getline(sym, line))
     {
-        cerr << "Error opening intermediate file." << endl;
-        return;
+        stringstream ss(line);
+        ss >> word1;
+        ss >> word2;
+        symtab.push_back({word1, word2});
     }
 
-    ofstream fout("machine_code.txt");
-
-    string line, lc_str, opcode_type, opcode_value, operand1, operand2;
-    vector<string> pool_table;
-    map<string, pair<string, string>> symbol_table;
-    map<string, pair<string, string>> littab;
-
-    while (getline(sin, line))
+    ifstream lit;
+    lit.open("litTable.txt", ios::in);
+    // string line, word1,word2;
+    while (getline(lit, line))
     {
-        stringstream symbole(line);
-        string index, symbol, address;
-        symbole >> index >> symbol >> address;
-        symbol_table[index] = {symbol, address};
+        stringstream ss(line);
+        ss >> word1;
+        ss >> word2;
+        littab.push_back({word1, word2});
     }
-    sin.close();
 
-    string lite, address;
-    int literal_index = 1;
-    while (getline(lin, line))
+    for (auto it : symtab)
     {
-        stringstream literal(line);
-        literal >> lite >> address;
-        littab[to_string(literal_index)] = {lite, address};
-        literal_index++;
+        cout << it.first << " " << it.second << endl;
     }
-    lin.close();
 
-    int lc = -1;
-    getline(fin, line);
-    fout<<"LC"<<" "<<"Opcode"<<" "<<"Op1"<<" "<<"Op2"<<endl;
-    fout<<endl;
+    for (auto it : littab)
+    {
+        cout << it.first << " " << it.second << endl;
+    }
 
+    ifstream fin;
+    fin.open("intermidiate.txt", ios::in);
+
+    ofstream fout;
+    fout.open("machineCode.txt", ios::out);
+
+    vector<string> words;
+    string word;
     while (getline(fin, line))
     {
         stringstream ss(line);
-        string lcstring;
-
-        if (ss.peek() != ' ')
+        while (ss >> word)
         {
-            ss >> lcstring;
+            words.push_back(word);
         }
 
-        ss >> opcode_type >> opcode_value;
-
-        if (opcode_type == "(AD,")
+        if (words[1][1] == 'I' && words[1][2] == 'S')
         {
-            if (opcode_value == "01)")
-            {
-                ss >> lc_str;
-                operand2 = lc_str.substr(3, lc_str.length() - 4);
-                // Now LC is set to the start
-                lc = stoi(operand2);
+            if(words[2][0] == '0'){
+                fout << words[0] << " ";
+                fout << "0" << " " << "0" <<" "<<"0"<<endl;//for (IS,00)
             }
-            else if (opcode_value == "02)")
-            {
-                fout << endl;
+            else{ fout << words[0] << " " << words[2][0];}
+            if (words[2].at(1) != ')')
+            { //for 2 digit no. e.g(IS,10)
+                fout << words[2].at(1) << " ";
             }
-            else if (opcode_value == "03)" || opcode_value == "04)")
+            else
             {
-                ss >> operand2;
-                fout<<endl;
+                fout << " ";
             }
-        }
-        else if (opcode_type == "(IS,")
-        {
-            // cout<<"IS"<<endl;
-            ss >> operand1 >> operand2;
-           // cout<<lcstring<<" operand1 "<<operand1<<"operand2"<<operand2<<endl;
-            if (opcode_value!="00)")
-            {
-                fout << lcstring << " ";
-                string op2 = operand2.substr(1, 1);
 
-                if (op2 == "S")
+            if (words.size() == 6)
+            {
+                // e.g 200 (IS, 01) (1) (S, 1)
+                fout << words[3][1] << " ";
+                if (words[4][1] == 'S')
                 {
-                    fout << "(" << opcode_value << " ";
-                    fout << operand1 << " ";
-                    string index = operand2.substr(3, 1);
-                    fout << symbol_table[index].second << endl;
+                    int index = words[5][0] - '0';
+                    fout << symtab[index - 1].second << " " << endl;
                 }
-                else if (op2 == "L")
+                if (words[4][1] == 'L')
                 {
-                    fout << "(" << opcode_value << " ";
-                    fout << operand1 << " ";
-                    string index = (operand2.substr(3, 1));
-                    fout << littab[index].second << endl;
+                    int index = words[5][0] - '0';
+                    fout << littab[index - 1].second << " " << endl;
                 }
             }
-            else if(opcode_value=="00)")
-            {
-                fout<<lcstring<<" "<<"(00)"<<" "<<"(0)"<<" "<<"000"<<endl;
-            }
-        }
 
-        else if (opcode_type == "(DL,")
-        {
-            if(opcode_value=="01)")
+            if (words.size() == 5)
             {
-                ss >> operand1;
-                fout << lcstring << " ";
-                fout<<"(00)"<<" "<<"(0)"<<" ";
-                string constant = operand1.substr(3, 1);
-                fout << "(00"<<constant<<")" << endl;
+                // e.g 200 (IS, 02) (S, 1)
+                if (words[3][1] == 'S')
+                {
+                    int index = words[4][0] - '0';
+                    fout << symtab[index - 1].second << " " << endl;
+                }
+                else
+                {
+                    // e.g. 108 (IS, 1) (1) (2)
+                    fout << words[3].at(1) << " " << words[4].at(1)<<endl;
+                }
             }
-            else if(opcode_value=="02)")    
-                fout<<endl;
         }
+        else if(words[1][1] == 'D' && words[1][2] == 'L'){
+            if(words[2][0] == '2'){
+                fout << words[0] << endl;
+            }else{
+                fout << words[0] << " ";
+                fout << "0" << " " << "0" << " ";
+                char constant = words[4][0];
+                fout << constant << endl;
+            }
+        }
+        for (auto it : words)
+        {
+            cout << it << " ";
+        }
+        cout << endl;
+        
+        words.clear();//clear vector for every new line
     }
 
-    fin.close();
-    fout.close();
-
-    cout << "Machine code generated!." << endl;
-}
-
-int main()
-{
-    CodeGen codeGen;
-    codeGen.pass2();
     return 0;
 }

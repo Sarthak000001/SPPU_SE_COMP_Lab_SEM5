@@ -36,6 +36,7 @@ def greet(txt):
 port = 8000
 server = SimpleXMLRPCServer(("localhost", port), logRequests=False)
 server.register_function(factorial, 'factorial_rpc')
+
 server.register_function(getSquare, 'square_rpc')
 server.register_function(greet,"greet_rpc")
 server.register_function(is_prime,"is_prime_rpc")

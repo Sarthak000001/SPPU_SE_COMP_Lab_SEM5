@@ -1,11 +1,15 @@
+/*
+----> Sarthak Nirgude <----
+        ◉_◉
+----|-----------------|----
+*/
 #include<bits/stdc++.h>
 using namespace std;
 
 int main(){
 
     ifstream fin;
-    fin.open("source.txt");
-
+    fin.open("text02.txt" , ios::in);
     ofstream mntout,kpdtout,pntout,mdtout,fout;
     mntout.open("MNT.txt");
     mdtout.open("MDT.txt");
@@ -13,53 +17,51 @@ int main(){
     pntout.open("PNTAB.txt");
     fout.open("output.txt");
 
-    vector<array<string,5>> mnt; // column - <name> <#pp> <#kp> <mdtp> <kpdtp>
-    vector<pair<string,string>> kpdt; // column - <parameter> <def. value>
-    map<string,int> pnt; // column - <symbol> <index>
+    vector<array<string,5>>mnt;
+    vector<pair<string,string>>kpd;
+    map<string ,int>pnt;
+
+    string line ,word;
+
+    bool macro=false ,start = false;
 
     int mdtptr = 1;
-    bool macroStart = false,started = false;
-    string line,word;
 
-    while(getline(fin,line)){
+    while(getline(fin ,line)){
+
         stringstream ss(line);
-
         ss >> word;
 
         if(word == "MACRO"){
-            macroStart = true;
+            macro=true;
             continue;
         }
+        if(macro){
+            array<string,5>temp={""};
+            temp[0]=word;
+            temp[3]=to_string(mdtptr);
 
-        if(macroStart){
-            array<string,5> temp;
-            mnt.push_back(temp);
-            int i = mnt.size() - 1;
-
-            mnt[i][0] = word;
-            mnt[i][3] = to_string(mdtptr);
-
-            pntout << "PNTAB for " << word << "\n";
-
-            int pp = 0,kp = 0;
+            int pp = 0, kp = 0;
             while(ss >> word){
-                // Removing the & and , symbol
-                word = word.substr(1);
-                if(word[word.size() - 1] == ',')
-                    word = word.substr(0,word.size()-1);
+                word = word.substr(1); //to skip &
+                if(word[word.size()-1]== ','){
+                    word = word.substr(0 , word.size() -1 ); //to skip ,
+                }
 
                 int kpidx = -1;
-                for(int i = 0;i < word.size();i++){
-                    if(word[i] == '='){
+                for (int i = 0; i < word.size(); i++)
+                {
+                    if (word[i] == '=')
+                    {
                         kpidx = i;
                         break;
                     }
-                } 
+                }
 
                 if(kpidx != -1){
                     kp++;
-                    pair<string,string> pr = {word.substr(0,kpidx),word.substr(kpidx + 1)};
-                    kpdt.push_back(pr);
+                    pair<string,string>pr({word.substr(0 , kpidx), word.substr(kpidx+1)});
+                    kpd.push_back(pr);
 
                     pnt[pr.first] = pnt.size() + 1;
                     pntout << pnt[pr.first] << "\t" << pr.first << "\n";
@@ -67,24 +69,32 @@ int main(){
                 else{
                     pp++;
 
-                    pnt[word] = pnt.size() + 1;
-                    pntout << pnt[word] << "\t" << word << "\n";
-                }       
+                    pnt[word]=pnt.size()+1;
+                    pntout << pnt[word] << " "<< word<<endl;
+
+                }
+
             }
+            temp[1] = to_string(pp);
+            temp[2] = to_string(kp);
+            if (kp > 0)
+                temp[4] = to_string(kpd.size() - kp + 1);
 
-            mnt[i][1] = to_string(pp);
-            mnt[i][2] = to_string(kp);
-            if(kp > 0) mnt[i][4] = to_string(kpdt.size() - kp + 1);
-            // else mnt[i][3] = "--";
-
-            macroStart = false;
+            mnt.push_back(temp);
+            macro=false;
             continue;
         }
+        if(word == "START"){
+            start=true;
+            continue;
+        }
+        if(start){
 
-        if(started){
-            if(word != "END"){
+            if (word != "END")
+            {
                 fout << word << " ";
-                while(ss >> word){
+                while (ss >> word)
+                {
                     fout << word << " ";
                 }
                 fout << "\n";
@@ -92,46 +102,40 @@ int main(){
             continue;
         }
 
-        if(word == "MEND"){
-            mdtout << "MEND" << "\n";
+        if(word=="MEND"){
+            mdtout << word;
             pnt.clear();
         }
-        else if(word == "START"){
-            started = true;
-            continue;
-        }
         else{
+
             mdtout << word << " ";
-            
-            bool first = true;
-            while(ss >> word){
-                if(!first){
-                    mdtout << ", ";
-                }
 
-                if(word[0] == '&'){
+            while (ss >> word)
+            {
+
+                if (word[0] == '&')
+                {
                     word = word.substr(1);
-                    if(word[word.size() - 1] == ',')
-                        word = word.substr(0,word.size()-1);
+                    if (word[word.size() - 1] == ',')
+                        word = word.substr(0, word.size() - 1);
 
-                    mdtout << "(P," << pnt[word]  << ")";
+                    mdtout << "(P," << pnt[word] << ") ";
                 }
-                else{
-                    if(word[word.size() - 1] == ',')
-                        word = word.substr(0,word.size()-1);
-                    mdtout << word << " ";
-                }
-                first = false;   
             }
             mdtout << "\n";
+
         }
 
-        mdtptr++;
         
+
+        mdtptr++;
+
     }
 
-    for(int i = 0;i < mnt.size();i++){
-        for(int j = 0;j < 5;j++){
+    for (int i = 0; i < mnt.size(); i++)
+    {
+        for (int j = 0; j < 5; j++)
+        {
             cout << mnt[i][j] << " ";
             mntout << mnt[i][j] << " ";
         }
@@ -139,10 +143,11 @@ int main(){
         mntout << "\n";
     }
 
-    for(int i = 0;i < kpdt.size();i++){
-        kpdtout << kpdt[i].first << " " << kpdt[i].second << "\n";
+    for (int i = 0; i < kpd.size(); i++)
+    {
+        kpdtout << kpd[i].first << " " << kpd[i].second << "\n";
     }
-
 
     return 0;
 }
+

@@ -13,7 +13,7 @@ LOOP    MOVER       AREG        A
         LTORG
         MOVER       AREG        A
 NEXT    SUB         AREG        ="1"
-        BC          AREG          BACK
+        BC          AREG        BACK
 LAST    STOP
         ORIGIN      LOOP+2
         MULT        CREG        B
